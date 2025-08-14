@@ -3,18 +3,6 @@
     overflow: hidden;
 }
 
-.canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-}
-
-.pixelated {
-    image-rendering: pixelated;
-}
-
 .children {
     position: relative;
     z-index: 10;

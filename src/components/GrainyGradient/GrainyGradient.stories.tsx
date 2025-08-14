@@ -115,3 +115,22 @@ export const AnimatedPosition: Story = {
         children: innerElement,
     },
 };
+
+export const SizedToText: Story = {
+    args: {
+        gradient: 'linear-gradient(45deg, #de6262, #ffb88c)',
+        children: (
+            <p
+                style={{
+                    fontSize: '4rem',
+                    fontFamily: 'sans-serif',
+                    fontWeight: 'bolder',
+                    margin: 0,
+                    lineHeight: 1,
+                }}
+            >
+                This is some text!
+            </p>
+        ),
+    },
+};
