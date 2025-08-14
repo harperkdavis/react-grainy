@@ -1,0 +1,1 @@
+export { GrainyGradient } from './components/GrainyGradient/';
