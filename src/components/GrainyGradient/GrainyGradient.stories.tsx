@@ -54,6 +54,7 @@ export const SimpleBlackWhite: Story = {
     args: {
         gradient: 'linear-gradient(90deg, #000, #fff)',
         children: innerElement,
+        shimmerSpeed: 0,
     },
 };
 
@@ -68,6 +69,7 @@ export const BicolorAngled: Story = {
     args: {
         gradient: 'linear-gradient(45deg, #de6262, #ffb88c)',
         children: <div style={{ width: 400, height: 200, pointerEvents: 'none' }} />,
+        noiseTextureSize: 256,
     },
 };
 
@@ -81,7 +83,7 @@ export const Tricolor: Story = {
 export const ShimmerSlow: Story = {
     args: {
         gradient: 'linear-gradient(90deg, #f00, #000)',
-        shimmer: 1,
+        shimmerSpeed: 1,
         children: innerElement,
     },
 };
@@ -89,7 +91,7 @@ export const ShimmerSlow: Story = {
 export const ShimmerFast: Story = {
     args: {
         gradient: 'linear-gradient(90deg, #f00, #000)',
-        shimmer: 10,
+        shimmerSpeed: 10,
         children: innerElement,
     },
 };
@@ -108,7 +110,7 @@ export const AnimatedSpinShimmer: Story = {
         gradient: (time: number) => {
             return `linear-gradient(${time / 10}deg, #000428, #004e92)`;
         },
-        shimmer: 2,
+        shimmerSpeed: 2,
         children: innerElement,
     },
 };

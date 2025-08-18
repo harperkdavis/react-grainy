@@ -10,8 +10,12 @@ interface ComponentProps extends GrainyGradientProps {
     fallbackBackground?: boolean;
     /** Standard React `className` property. */
     className?: string;
+    /** Optional className for the canvas element. */
+    canvasClassName?: string;
     /** Standard React children. */
     children?: ReactNode;
+    /** Optional inline style for the container. */
+    style?: React.CSSProperties;
 }
 
 /**
@@ -22,6 +26,8 @@ export function GrainyGradient({
     fallbackBackground = true,
     debugShowFallback = false,
     className,
+    canvasClassName,
+    style,
     children,
     ...props
 }: ComponentProps): ReactElement {
@@ -81,8 +87,9 @@ export function GrainyGradient({
                     fallbackBackground || debugShowFallback
                         ? typeof gradient === 'string'
                             ? gradient
-                            : gradient(0)
+                            : gradient(0, { width: dim.width, height: dim.height })
                         : undefined,
+                ...style,
             }}
             ref={containerRef}
         >
@@ -91,6 +98,7 @@ export function GrainyGradient({
                 width={dim.width}
                 height={dim.height}
                 debugShowFallback={debugShowFallback}
+                canvasClassName={canvasClassName}
                 {...props}
             />
             <div className={styles.children}>{children}</div>

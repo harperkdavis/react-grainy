@@ -7,7 +7,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 import storybook from 'eslint-plugin-storybook';
 
 export default tseslint.config(
-    { ignores: ['dist', '.storybook'] },
+    { ignores: ['dist', '.storybook', 'playground'] },
     {
         extends: [
             js.configs.recommended,
@@ -22,6 +22,12 @@ export default tseslint.config(
             parserOptions: {
                 // Enable type-aware linting without explicitly listing tsconfig paths
                 projectService: true,
+                allowDefaultProject: [
+                    'playground/**/*.ts',
+                    'playground/**/*.tsx',
+                    'playground/**/*.mts',
+                    'playground/**/*.cts',
+                ],
             },
         },
         plugins: {

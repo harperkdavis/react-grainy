@@ -109,20 +109,38 @@ function renderGradient(
 
 export interface GrainyGradientProps {
     /** Either a string or a function that returns a valid CSS gradient string. The component will throw an error if it cannot parse this string. */
-    gradient: string | ((time: number) => string);
-    /** The resolution of the grain texture. Increase if it looks repetitive. */
-    grainSize?: number;
-    /** Seed for the grain texture. Only modify if using multiple gradients and they look samey. */
-    grainSeed?: number | string;
+    gradient: string | ((time: number, size?: { width: number; height: number }) => string);
+    /** The resolution (side length) of the noise texture. Increase if it looks repetitive. */
+    noiseTextureSize?: number;
+    /** Seed for the noise texture. Only modify if using multiple gradients and they look samey. */
+    noiseSeed?: number | string;
 
     /** Speed at which the gradient shimmers. Try different values! */
-    shimmer?: number;
+    shimmerSpeed?: number;
     /** Whether to preserve the aspect ratio of the gradient depending on the angle. */
     preserveAspect?: boolean;
     /** Whether to keep the gradient looking pixelated as you zoom in. */
     pixelated?: boolean;
     /** Force the fallback background to render to check consistency. */
     debugShowFallback?: boolean;
+    /** Clip path to apply to the canvas. */
+    clipPath?: string;
+    /** Pause animation even if gradient is a function or shimmerSpeed > 0 */
+    paused?: boolean;
+    /** Scale the internal rendering resolution relative to CSS pixels. */
+    resolutionScale?: number;
+    /** Called once after the first successful draw. */
+    onReady?: () => void;
+    /** Called if WebGL context fails or a rendering error occurs. */
+    onContextError?: (error: Error) => void;
+    /** Attributes passed to getContext('webgl', ...) */
+    contextAttributes?: WebGLContextAttributes;
+    /** Force WebGL1 context if possible. */
+    forceWebGL1?: boolean;
+    /** Extra className applied to the canvas element. */
+    canvasClassName?: string;
+    /** Initial time to seed the first frame for deterministic rendering. */
+    initialTime?: number;
 }
 
 interface CanvasProps extends GrainyGradientProps {
@@ -140,18 +158,27 @@ export function Canvas({
 
     gradient,
 
-    grainSize = 256,
-    grainSeed = 0xcafe,
+    noiseTextureSize,
+    noiseSeed = 0xcafe,
 
-    shimmer = 0.0,
+    shimmerSpeed = 0.0,
     preserveAspect = true,
     pixelated = false,
 
     debugShowFallback = false,
+    paused = false,
+    resolutionScale = 1,
+    onReady,
+    onContextError,
+    contextAttributes,
+    forceWebGL1 = true,
+    canvasClassName,
+    initialTime = 0,
 }: CanvasProps): ReactElement {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     const animationFrameId = useRef<number | null>(null);
+    const didFireReady = useRef(false);
 
     const [gl, setGl] = useState<WebGLRenderingContext | null>(null);
     const [program, setProgram] = useState<WebGLProgram | null>(null);
@@ -162,35 +189,71 @@ export function Canvas({
         // Ensure correct texture unit binding on every draw for robustness
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, grainTexture);
+        const now = performance.now();
+        const [cw, ch] = [canvasRef.current.width, canvasRef.current.height];
+        const time = initialTime + now;
+        const effectiveNoiseSize =
+            typeof noiseTextureSize === 'number' && Number.isFinite(noiseTextureSize)
+                ? noiseTextureSize
+                : 256;
+        const effectiveShimmer =
+            typeof shimmerSpeed === 'number' && Number.isFinite(shimmerSpeed) ? shimmerSpeed : 0.0;
         const gradientString =
-            typeof gradient === 'string' ? gradient : gradient(performance.now());
-        const [width, height] = [canvasRef.current.width, canvasRef.current.height];
+            typeof gradient === 'string' ? gradient : gradient(time, { width: cw, height: ch });
         renderGradient(
             gl,
             program,
-            width,
-            height,
+            cw,
+            ch,
             gradientString,
-            grainSize,
-            shimmer * performance.now(),
+            Math.max(1, effectiveNoiseSize),
+            effectiveShimmer * now,
             preserveAspect
         );
         if (animationFrameId.current !== null) requestAnimationFrame(render);
-    }, [shimmer, gl, program, grainSize, grainTexture, gradient, preserveAspect]);
+        if (!didFireReady.current) {
+            didFireReady.current = true;
+            onReady?.();
+        }
+    }, [
+        initialTime,
+        shimmerSpeed,
+        gl,
+        program,
+        noiseTextureSize,
+        grainTexture,
+        gradient,
+        preserveAspect,
+        onReady,
+    ]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) throw Error('could not create canvas');
 
         // Try multiple context types for broader compatibility
-        const gl =
-            canvas.getContext('webgl') ??
-            (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
-        if (!gl) return;
+        let context: WebGLRenderingContext | null = null;
+        try {
+            if (forceWebGL1) {
+                context = canvas.getContext('webgl', contextAttributes ?? undefined);
+            }
+            if (!context) {
+                context = canvas.getContext(
+                    'experimental-webgl',
+                    contextAttributes ?? undefined
+                ) as unknown as WebGLRenderingContext | null;
+            }
+        } catch (err) {
+            onContextError?.(err as Error);
+        }
+        if (!context) {
+            onContextError?.(new Error('WebGL context not available'));
+            return;
+        }
 
-        setGl(gl);
-        setProgram(initializeCanvas(gl));
-    }, []);
+        setGl(context);
+        setProgram(initializeCanvas(context));
+    }, [contextAttributes, forceWebGL1, onContextError]);
 
     useEffect(() => {
         if (!program) return;
@@ -205,7 +268,11 @@ export function Canvas({
             setGrainTexture(texture);
         }
 
-        const textureData = createNoiseSource(grainSeed, grainSize);
+        const effectiveSize =
+            typeof noiseTextureSize === 'number' && Number.isFinite(noiseTextureSize)
+                ? noiseTextureSize
+                : 256;
+        const textureData = createNoiseSource(noiseSeed, effectiveSize);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureData);
@@ -216,7 +283,7 @@ export function Canvas({
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
         gl.generateMipmap(gl.TEXTURE_2D);
-    }, [program, grainSeed, grainSize, gl, grainTexture]);
+    }, [program, noiseSeed, noiseTextureSize, gl, grainTexture]);
 
     useEffect(() => {
         if (!program) return;
@@ -226,7 +293,9 @@ export function Canvas({
         if (!canvas) throw Error('could not create canvas');
         if (!gl) return;
 
-        const animated = typeof gradient === 'function' || shimmer > 0;
+        const effectiveShimmer =
+            typeof shimmerSpeed === 'number' && Number.isFinite(shimmerSpeed) ? shimmerSpeed : 0.0;
+        const animated = (typeof gradient === 'function' || effectiveShimmer > 0) && !paused;
 
         if (animated) {
             animationFrameId.current = requestAnimationFrame(render);
@@ -244,21 +313,22 @@ export function Canvas({
     }, [
         grainTexture,
         gradient,
-        shimmer,
+        shimmerSpeed,
         preserveAspect,
         gl,
         program,
         render,
         width,
         height,
-        grainSize,
+        noiseTextureSize,
+        paused,
     ]);
 
     return (
         <canvas
-            width={width}
-            height={height}
-            className={`${styles.canvas} ${pixelated ? styles.pixelated : ''}`}
+            width={Math.max(1, Math.round(width * Math.max(0.1, resolutionScale)))}
+            height={Math.max(1, Math.round(height * Math.max(0.1, resolutionScale)))}
+            className={`${styles.canvas} ${pixelated ? styles.pixelated : ''} ${canvasClassName ?? ''}`}
             style={{
                 borderRadius: 'inherit',
                 visibility: debugShowFallback ? 'hidden' : 'unset',

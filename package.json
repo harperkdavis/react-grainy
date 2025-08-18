@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "tsc && vite build",
+        "dev:playground": "vite --config playground/vite.config.ts --open",
         "lint": "eslint . --ext ts,tsx",
         "lint:fix": "eslint . --ext ts,tsx --fix",
         "format": "prettier --check .",
@@ -23,6 +24,7 @@
         "dist"
     ],
     "types": "./dist/main.d.ts",
+    "sideEffects": false,
     "peerDependencies": {
         "react": ">=18 <21",
         "react-dom": ">=18 <21"
