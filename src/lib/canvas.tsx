@@ -184,7 +184,7 @@ export function Canvas({
 
         // Try multiple context types for broader compatibility
         const gl =
-            (canvas.getContext('webgl')) ??
+            canvas.getContext('webgl') ??
             (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
         if (!gl) return;
 
@@ -241,7 +241,18 @@ export function Canvas({
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, [grainTexture, gradient, shimmer, preserveAspect, gl, program, render, width, height, grainSize]);
+    }, [
+        grainTexture,
+        gradient,
+        shimmer,
+        preserveAspect,
+        gl,
+        program,
+        render,
+        width,
+        height,
+        grainSize,
+    ]);
 
     return (
         <canvas
