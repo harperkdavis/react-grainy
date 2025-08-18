@@ -1,4 +1,4 @@
-import { AngularNode, ColorStop, DirectionalNode, LinearGradientNode } from 'gradient-parser';
+import type { AngularNode, ColorStop, DirectionalNode, LinearGradientNode } from 'gradient-parser';
 import seedrandom from 'seedrandom';
 import Values from 'values.js';
 
@@ -63,7 +63,7 @@ function mod(n: number, d: number) {
     return ((n % d) + d) % d;
 }
 
-export function createNoiseSource(seed: string | number, size: number) {
+export function createNoiseSource(seed: string | number, size: number): ImageData {
     const rng = seedrandom(seed.toString());
     const dataArray = new Uint8ClampedArray(
         new Array(size * size).fill(null).flatMap(() => {
@@ -149,17 +149,20 @@ function parseStopColor(stop: ColorStop): [number, number, number] {
         // gradient-parser still able to return hsl values even if not in type declarations
         colorString = `hsl(${stop.value[0]}deg, ${stop.value[1]}%, ${stop.value[2]}%)`;
     } else {
-        colorString = `${stop.type}(${stop.value.map((val) => val || '').join(', ')})`;
+        colorString = `${stop.type}(${stop.value.map((val) => val ?? '').join(', ')})`;
     }
     const { rgb } = new Values(colorString);
     return [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255];
 }
 
 function getRemInPx() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return 16;
+    }
     const rootElement = document.documentElement;
     const computedStyle = window.getComputedStyle(rootElement);
     const fontSizePx = parseFloat(computedStyle.fontSize);
-    return fontSizePx;
+    return Number.isFinite(fontSizePx) ? fontSizePx : 16;
 }
 
 function parseStopPosition(stop: ColorStop, index: number, count: number, diagonal: number) {

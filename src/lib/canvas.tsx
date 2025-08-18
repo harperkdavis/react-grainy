@@ -1,4 +1,5 @@
 import gradientParser from 'gradient-parser';
+import type { ReactElement } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as twgl from 'twgl.js';
 
@@ -27,6 +28,11 @@ function initializeCanvas(gl: WebGLRenderingContext): WebGLProgram {
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
+    // Bind noise texture sampler to texture unit 0 once
+    const samplerLocation = gl.getUniformLocation(program, 'u_noise_texture');
+    if (samplerLocation) {
+        gl.uniform1i(samplerLocation, 0);
+    }
     return program;
 }
 
@@ -122,11 +128,15 @@ export interface GrainyGradientProps {
 interface CanvasProps extends GrainyGradientProps {
     width: number;
     height: number;
+
+    clipPath?: string;
 }
 
 export function Canvas({
     width,
     height,
+
+    clipPath,
 
     gradient,
 
@@ -138,7 +148,7 @@ export function Canvas({
     pixelated = false,
 
     debugShowFallback = false,
-}: CanvasProps) {
+}: CanvasProps): ReactElement {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     const animationFrameId = useRef<number | null>(null);
@@ -149,10 +159,12 @@ export function Canvas({
 
     const render = useCallback(() => {
         if (!gl || !program || !grainTexture || !canvasRef.current) return;
+        // Ensure correct texture unit binding on every draw for robustness
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, grainTexture);
         const gradientString =
             typeof gradient === 'string' ? gradient : gradient(performance.now());
         const [width, height] = [canvasRef.current.width, canvasRef.current.height];
-        console.log('Rendering:', gradient);
         renderGradient(
             gl,
             program,
@@ -170,7 +182,10 @@ export function Canvas({
         const canvas = canvasRef.current;
         if (!canvas) throw Error('could not create canvas');
 
-        const gl = canvas.getContext('webgl');
+        // Try multiple context types for broader compatibility
+        const gl =
+            (canvas.getContext('webgl')) ??
+            (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
         if (!gl) return;
 
         setGl(gl);
@@ -191,6 +206,7 @@ export function Canvas({
         }
 
         const textureData = createNoiseSource(grainSeed, grainSize);
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureData);
 
@@ -216,7 +232,8 @@ export function Canvas({
             animationFrameId.current = requestAnimationFrame(render);
         } else {
             animationFrameId.current = null;
-            render();
+            // For non-animated, draw once on the next frame to ensure layout settles
+            requestAnimationFrame(() => render());
         }
 
         return () => {
@@ -224,7 +241,7 @@ export function Canvas({
                 cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, [grainTexture, gradient, shimmer, preserveAspect, gl, program, render]);
+    }, [grainTexture, gradient, shimmer, preserveAspect, gl, program, render, width, height, grainSize]);
 
     return (
         <canvas
@@ -234,6 +251,7 @@ export function Canvas({
             style={{
                 borderRadius: 'inherit',
                 visibility: debugShowFallback ? 'hidden' : 'unset',
+                clipPath,
             }}
             ref={canvasRef}
         />

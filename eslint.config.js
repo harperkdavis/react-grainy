@@ -9,11 +9,20 @@ import storybook from 'eslint-plugin-storybook';
 export default tseslint.config(
     { ignores: ['dist', '.storybook'] },
     {
-        extends: [js.configs.recommended, ...tseslint.configs.recommended, eslintConfigPrettier],
+        extends: [
+            js.configs.recommended,
+            ...tseslint.configs.recommendedTypeChecked,
+            ...tseslint.configs.stylisticTypeChecked,
+            eslintConfigPrettier,
+        ],
         files: ['**/*.{ts,tsx}'],
         languageOptions: {
             ecmaVersion: 2020,
             globals: globals.browser,
+            parserOptions: {
+                // Enable type-aware linting without explicitly listing tsconfig paths
+                projectService: true,
+            },
         },
         plugins: {
             'react-hooks': reactHooks,
@@ -22,6 +31,14 @@ export default tseslint.config(
         rules: {
             ...reactHooks.configs.recommended.rules,
             'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+            // General
+            'eqeqeq': ['error', 'always'],
+            'no-console': ['warn', { allow: ['warn', 'error'] }],
+            // TS strictness
+            '@typescript-eslint/consistent-type-imports': [
+                'error',
+                { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+            ],
             '@typescript-eslint/no-unused-vars': [
                 'error',
                 {
@@ -33,6 +50,8 @@ export default tseslint.config(
                     varsIgnorePattern: '^_',
                 },
             ],
+            '@typescript-eslint/no-misused-promises': 'error',
+            '@typescript-eslint/explicit-module-boundary-types': 'warn',
         },
     },
     {

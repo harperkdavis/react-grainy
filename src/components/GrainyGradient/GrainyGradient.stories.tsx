@@ -3,6 +3,20 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { GrainyGradient } from '.';
 
 const innerElement = <div style={{ width: 400, height: 200, pointerEvents: 'none' }} />;
+const ResizableInner = () => {
+    return (
+        <div
+            style={{
+                resize: 'both',
+                overflow: 'auto',
+                width: 300,
+                height: 180,
+                border: '1px dashed #999',
+                background: 'rgba(255,255,255,0.04)',
+            }}
+        />
+    );
+};
 
 const meta = {
     title: 'Components/GrainyGradient',
@@ -21,11 +35,12 @@ const meta = {
 
     argTypes: {
         children: {
-            options: ['400x200', '200x400', '400x400'],
+            options: ['400x200', '200x400', '400x400', 'resizable'],
             mapping: {
                 '400x200': innerElement,
                 '200x400': <div style={{ width: 200, height: 400 }} />,
                 '400x400': <div style={{ width: 400, height: 400 }} />,
+                resizable: <ResizableInner />,
             },
         },
     },
