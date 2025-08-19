@@ -1,7 +1,21 @@
 {
-    "name": "react-vite-component-template",
-    "version": "0.0.0",
+    "name": "react-grainy",
+    "version": "0.1.2",
     "type": "module",
+    "description": "A React component for rendering grainy gradients using WebGL.",
+    "keywords": [
+        "react",
+        "webgl",
+        "gradient",
+        "grainy"
+    ],
+    "author": "Harper Davis <harper@hked.live>",
+    "license": "MIT",
+    "homepage": "https://github.com/harperkdavis/react-grainy",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/harperkdavis/react-grainy.git"
+    },
     "scripts": {
         "build": "tsc && vite build",
         "dev:playground": "vite --config playground/vite.config.ts --open",
@@ -13,10 +27,7 @@
         "stylelint:fix": "stylelint **/*.css --fix",
         "storybook": "storybook dev -p 6006",
         "build-storybook": "storybook build",
-        "test": "vitest",
-        "test:ui": "vitest --ui",
-        "coverage": "vitest run --coverage",
-        "prepublishOnly": "vitest run && npm run build"
+        "prepublishOnly": "bun run build"
     },
     "module": "./dist/main.js",
     "exports": "./dist/main.js",

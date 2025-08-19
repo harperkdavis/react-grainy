@@ -1,4 +1,4 @@
-![react-grainy](react-grainy.png)
+![react-grainy](https://i.imgur.com/WI9r5s5.png)
 
 > Grainy Gradients for the Modern Web
 
